@@ -45,10 +45,13 @@ mod unsafecache;
 /// where it was defined.
 #[derive(Debug)]
 pub struct ModuleCache<'a> {
+
+    pub project_root: PathBuf,
+
     /// All the 'root' directories for imports. In practice this will contain
     /// the directory of the driver module as well as all directories containing
     /// any libraries used by the program, including the standard library.
-    pub relative_roots: Vec<PathBuf>,
+    pub relative_roots: HashMap<String, PathBuf>,
 
     /// Maps ModuleId -> Ast
     /// Contains all the parse trees parsed by the program.
@@ -404,7 +407,11 @@ impl<'a> ModuleCache<'a> {
     /// They can be converted to relative paths for displaying errors later.
     pub fn new(project_directory: &Path, file_cache: FileCache) -> ModuleCache<'a> {
         ModuleCache {
-            relative_roots: vec![project_directory.to_owned(), stdlib_dir()],
+            project_root: project_directory.to_owned(),
+            relative_roots: HashMap::from([
+                (project_directory.file_name().unwrap().to_str().unwrap().to_string(), project_directory.to_owned()),
+                ("stdlib".to_owned(), stdlib_dir())
+            ]),
             // Really wish you could do ..Default::default() for the remaining fields
             modules: HashMap::default(),
             parse_trees: UnsafeCache::default(),
@@ -465,7 +472,8 @@ impl<'a> ModuleCache<'a> {
     }
 
     pub fn strip_root<'b>(&self, path: &'b Path) -> Option<&'b Path> {
-        self.relative_roots.iter().find_map(move |root| path.strip_prefix(root).ok())
+        self.relative_roots.iter()
+            .find_map(move |root| path.strip_prefix(root.1).ok())
     }
 
     #[allow(unused)]

@@ -637,6 +637,8 @@ impl<'c> NameResolver {
     pub fn declare(ast: Ast<'c>, cache: &mut ModuleCache<'c>) -> &'c mut NameResolver {
         let filepath = ast.locate().filename;
 
+        //dbg!(&filepath);
+
         let existing = cache.get_name_resolver_by_path(filepath);
         assert!(existing.is_none());
 
@@ -1400,6 +1402,7 @@ impl<'c> Resolvable<'c> for ast::TypeAnnotation<'c> {
 fn absolute_path(relative_path: &Path, cache: &ModuleCache) -> Option<PathBuf> {
     let relative_path = PathBuf::from(relative_path);
 
+    /*
     for root in cache.relative_roots.iter() {
         let path = root.join(&relative_path).with_extension("an");
 
@@ -1409,10 +1412,32 @@ fn absolute_path(relative_path: &Path, cache: &ModuleCache) -> Option<PathBuf> {
 
         return Some(path);
     }
-    None
+    */
+
+    let file_name = relative_path.file_name().unwrap().to_str().unwrap().to_string();
+    //dbg!(&file_name);
+
+    let package_name = relative_path.parent()?.file_name().unwrap().to_str().unwrap().to_string();
+    //dbg!(&package_name);
+
+    let resolved_path = if let Some(path) = cache.relative_roots.get(&package_name) {
+        //dbg!(&path);
+
+        match relative_path.extension() {
+            Some(ext) if ext == "an" => path.join(file_name),
+            _ => path.join(file_name).with_extension("an"),
+        }.into()
+
+    } else {
+        None
+    };
+
+    //dbg!(&resolved_path);
+    resolved_path
 }
 
 pub fn declare_module<'a>(path: &Path, cache: &mut ModuleCache<'a>, error_location: Location<'a>) -> Option<ModuleId> {
+
     let path = match absolute_path(path, cache) {
         Some(p) => p,
         _ => {
@@ -1432,6 +1457,7 @@ pub fn declare_module<'a>(path: &Path, cache: &mut ModuleCache<'a>, error_locati
     }
 
     let path = cache.push_filepath(PathBuf::from(&path));
+    //dbg!(&path);
 
     let contents = cache.get_contents(path).unwrap();
 
@@ -1454,6 +1480,7 @@ pub fn declare_module<'a>(path: &Path, cache: &mut ModuleCache<'a>, error_locati
 pub fn define_module<'a>(
     module_id: ModuleId, cache: &mut ModuleCache<'a>, error_location: Location<'a>,
 ) -> Option<&'a Scope> {
+
     let import = cache.name_resolvers.get_mut(module_id.0).unwrap();
     match import.state {
         NameResolutionState::NotStarted | NameResolutionState::DeclareInProgress => {
@@ -1473,8 +1500,10 @@ pub fn define_module<'a>(
 
 impl<'c> Resolvable<'c> for ast::Import<'c> {
     fn declare(&mut self, resolver: &mut NameResolver, cache: &mut ModuleCache<'c>) {
+
         let relative_path = self.path.clone().join("/");
         self.module_id = declare_module(Path::new(&relative_path), cache, self.location);
+
         if let Some(module_id) = self.module_id {
             resolver.current_scope().modules.insert(relative_path, module_id);
         }

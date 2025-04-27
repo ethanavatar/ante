@@ -1,4 +1,4 @@
-import Library
+import NameResolution.Library
 
 foo = fn _ b -> b
 

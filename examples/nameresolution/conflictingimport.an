@@ -1,4 +1,4 @@
-import Library
+import NameResolution.Library
 
 library_int = 1
 
@@ -7,13 +7,13 @@ library_fn _ = 3
 // args: --check
 // expected stderr:
 // conflictingimport.an:1:1	error: import shadows previous definition of library_fn
-// import Library
+// import NameResolution.Library
 // 
 // conflictingimport.an:5:1	note: library_fn was previously defined here
 // library_fn _ = 3
 // 
 // conflictingimport.an:1:1	error: import shadows previous definition of library_int
-// import Library
+// import NameResolution.Library
 // 
 // conflictingimport.an:3:1	note: library_int was previously defined here
 // library_int = 1
